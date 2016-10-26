@@ -1,0 +1,553 @@
+---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+* * *
+* * *
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)    # package for plotting data
+library(dplyr)      # package for data manipulation
+library(stringr)    # package for string manipulation
+library(scales)     # package for scaling plots
+library(reshape2)   # package for restructuring data
+```
+
+### Load data
+
+```{r load-data}
+load('~/Projects/data/brfss2013.Rdata')
+```
+
+* * *
+* * *
+
+## Part 1: Data
+
+**Brief description of the data**
+
+The primary purpose of this project perform an exploratory analysis of th Behavioral Risk Factor Surveillance System (BRFSS) telephone survey data, from the year 2013. Descriptions, of each variable and it's possible corresponding responses can be found in this guide: [BRFSS2013 Codebook](http://www.cdc.gov/brfss/annual_data/2013/pdf/codebook13_llcp.pdf)
+
+**Methods of collection**
+
+Monthly, surveys were conducted in all 50 states in the US, the District of Columbia, Puerto Rico, and Guam, over the course of 2013. This data is collected through, landline, and cellular telephone-based questionnaires administered to a randomly selected adult (18 or older) in each randomly sampled household, from all households with telephones within a state. Guam and Puerto Rico use simple random sampling, while the other 51 states use a method of stratified random sampling, called disproportionate stratified sample (DSS) design for landline samples, and different method of stratified random sampling for the cellular samples based on area code and telephone exchange. Calls are made seven days per week, during both day and evening hours, and to mitigate sampling bias, sample records are weighted to adjust for variation in both coverage and response among population segments.
+
+[Source: overview_2013.pdf](http://www.cdc.gov/brfss/annual_data/2013/pdf/overview_2013.pdf)
+
+**Implications of collection methods**
+
+The collection methods used for the BRFSS survey data promote a high level of confidence that the sample is random, so it seems that the results can be generalized to the population of adults in the United states, however this assumption is challenged by results discussed further in question 1. Because this study is observational, and no random assignment occured, causality cannot be concluded from any of the results in this study.
+
+* * *
+* * *
+
+## Part 2: Research questions
+
+**Research question 1: How do individuals rate their general health by age and sex, and how does this compare to the population as a whole?**
+
+The purpose of this question is to explore the how individuals surveyed, rated their general health in regards to their age and sex, and compare each stratum to the entire sample. Intuitively, one might expect there to be a negative correlation between age and health but age and sex to have little, or no correlation.
+
+**Research quesion 2: Is there a relationship between the level of education and excercise?**
+
+This research question intends to discover if there is an association between education and excercise among survey respondents. These variables seem to have little in common, however if there is a relationship, it could warrant further study to discover if there is a causal link or if a confounding factor exists.
+
+**Research quesion 3: Does employent status relate to the frequency of respondent's doctor's visits?**
+
+Some employers offer benefits, such as health insurance, to their employees, which may lead one to believe that employed individuals would visit the doctor more frequently. The final question seeks to discover if such a relationship exists, and if there may be other relationships that we do not expect. Again, should such a relationship can be found, we cannot determine causality, however it may provide grounds for future research into the matter.
+
+* * *
+* * *
+
+## Part 3: Exploratory data analysis
+
+----
+
+#### **Research quesion 1:**
+> How do individuals rate their general health by age and sex, and how does this relate to the population as a whole?
+
+<br></br>
+
+**Variables:**
+
+    Variable Name  Description
+--  -------------  -------------
+1   GENHLTH        Respondent rating of their general health
+2   SEX            Respondent Sex
+3   X_AGE_G        Six-level imputed age category
+
+<br></br>
+
+To begin, the relevant variables are extracted from the larger set of data, null values are removed, and the structure of the resulting data frame is displayed.
+
+<br></br>
+
+```{r}
+# Create new data frame
+q1_base <- brfss2013 %>% 
+  select(genhlth, X_age_g, sex) %>% 
+  filter(!is.na(genhlth) & !is.na(X_age_g) & !is.na(sex)) 
+
+# Show structure
+str(q1_base)
+
+```
+<br></br>
+
+By examining the structure, it is evident that each variable is categorical and two of which are ordered (genhlth, age). The corresponding documentation in the BRFSS Codebook is in ageement with the structure seen here, with 5 levels for general health, 6 for age, and 2 for sex. In order to better understand this set of data, each variable is grouped and counted. Then the frequency of each is plotted.
+
+<br></br>
+
+**Health**
+
+```{r,fig.align='center'}
+
+# Grouped By Health
+q1_count_health <- q1_base %>% 
+  group_by(genhlth) %>% 
+  summarise(count = n()) 
+
+# Health Plot
+ggplot(q1_count_health, aes(x = genhlth, y = count)) +
+  geom_bar(stat = "identity") +
+  xlab("General Health") +
+  ylab("Responses") +
+  labs(title = "Frequency of General Health Responses")
+
+# Show totals by health
+q1_count_health
+```
+
+<br></br>
+
+**Age**
+
+```{r,fig.align='center'}
+# Grouped By Age
+q1_count_age <- q1_base %>% 
+  group_by(X_age_g) %>% 
+  summarise(count = n()) 
+
+# Age Plot
+ggplot(q1_count_age, aes(x = X_age_g, y = count)) +
+  geom_bar(stat = "identity") +
+  xlab("Age of Respondent") +
+  ylab("Responses") +
+  labs(title = "Frequency of Respondent Age")
+
+# Show totals by Age
+q1_count_age
+```
+<br></br>
+
+**Sex**
+
+```{r,width = 2, fig.align='center'}
+# Grouped By Sex
+q1_count_sex <- q1_base %>% 
+  group_by(sex) %>% 
+  summarise(count = n()) 
+
+# Sex Plot
+ggplot(q1_count_sex, aes(x = sex, y = count)) +
+  geom_bar(stat = "identity") +
+  xlab("Sex of Respondent") +
+  ylab("Responses") +
+  labs(title = "Frequency of Respondent Sex")
+
+# Shwo totals by Sex
+q1_count_sex
+
+```
+<br></br>
+
+From the plots, it can be seen that respondents tended towards positive ratings of their self-assesments of general health, and there were more female respondents than male. It is also apparent that the respondents of the survey data were much more likely to be in the older age groups, which calls into question the generalizability of this data, as the distribution of the respondent ages may not be representative of the population. The following plot further illustrates this point.
+
+<br></br>
+
+```{r,fig.width = 12, fig.height = 6, fig.align='center'}
+# Plot general health responses by age
+ggplot(q1_base, aes(x=genhlth, fill = sex)) + 
+  geom_bar(position="dodge") + 
+  facet_wrap(~ X_age_g) +
+  xlab("General Health Rating (Excellent - Poor)") +
+  ylab("Number of Respondents") +
+  labs(title = "General Health by Age")
+```
+
+<br></br>
+
+Using these plots, it is clear that older respondents are far more common, they tend have lower self assessments of their general health, and they may be more likely to be female. In order to continue this investigation, each health rating is assigned a numeric value, so the mean score by age and sex can be computed. Addtionally, the median score for each age group is displayed
+
+<br></br>
+
+```{r}
+# Define score function
+health_score <- function(x) {
+  return(
+    (x == "Poor")*1 + 
+    (x == "Fair")*2 + 
+    (x == "Good")*3 + 
+    (x == "Very good")*4 + 
+    (x == "Excellent")*5
+    )
+}
+
+# Create new data frame with mean scores
+q1_health_ratings <- q1_base %>% 
+  mutate(health = health_score(genhlth)) %>% 
+  group_by(X_age_g, sex) %>% 
+  summarise(mean = mean(health))
+
+# Median Health Ratings
+q1_base %>% 
+  mutate(health = health_score(genhlth)) %>% 
+  group_by(X_age_g) %>% 
+  summarise(median = median(health))
+```
+
+<br></br>
+
+Clearly the older groups have lower medians for health scores. This information will be compared to the following plots, which shows the mean scores by age for both male and female respondents, and the mean scores by sex for each age group.
+
+<br></br>
+
+```{r, fig.width = 8, fig.height = 6, fig.align='center'}
+# Plot mean health scores in regards to age
+ggplot(q1_health_ratings,aes(x = X_age_g, y = mean, shape = factor(sex))) + 
+  geom_point(aes(colour = factor(sex)), size = 2) +
+  scale_color_manual(values = c("blue", "red"))+
+  xlab("Age Group") +
+  ylab("Mean Health Rating (1-5)") +
+  labs(title = "Mean Health Rating by Age")
+
+# Plot mean health scores in regards to sex
+ggplot(q1_health_ratings,aes(x = sex, y = mean)) + 
+   geom_point(aes(colour = factor(X_age_g)), size = 2) +
+   scale_color_manual(values = c("blue", "red", "green", "purple", "orange", "black"))+
+   xlab("Age Group") +
+   ylab("Mean Health Rating (1-5)") +
+   labs(title = "Mean Health Rating by Sex")
+
+```
+
+<br></br>
+
+In these plots there is a negative correlation with age and the mean scores for the self-assessment of general health among respondents. The male respondents had higher variability of their mean scores across age, and while younger females had a lower mean rating than the males, these values became much closer with age.
+
+<br></br>
+
+**Conclusion**
+
+It can be concluded that there may be a correlation between age and self-assesment of an individual's general health, as well as a correlation between younger females in the population to rate their health lower than their male couterparts. Since there may be a strong bias towards older respondents, this may not be generalizable to the population as a whole, however there appears to be enough evidence to warrant further study into the matter.
+
+----
+
+####**Research quesion 2:**
+> Is there a relationship between the level of education and excercise?
+
+<br></br>
+
+**Variables**
+
+    Variable Name Description
+--  ------------- -------------
+1   EDUCA         Highest level of education completed
+2   EXERANY2      Participated in any physical activity in the past month
+
+<br></br>
+
+As with the previous question, the relevant variables are extracted from the larger set and null values are removed, however it can be seen in the structure that the levels do not match with the BRFSS codebook. By showing the the number of respondents in each level, it appears that responses for "Don't Know" or "Refused" were reported as NA in the original set, which suits the purposes of this study. 
+
+<br></br>
+
+```{r}
+# Create base data frame
+q2_base <- brfss2013 %>% 
+  select(educa, exerany2) %>% 
+  filter(!is.na(educa) & !is.na(exerany2))
+
+# Display structure
+str(q2_base)
+
+```
+
+<br></br>
+
+**Education**
+
+```{r}
+# Display Education counts
+brfss2013 %>% 
+  group_by(educa) %>%
+  summarise(count = n())
+
+```
+
+<br></br>
+
+**Exercise**
+
+```{r}
+# Display Exercise counts
+brfss2013 %>% 
+  group_by(educa) %>% 
+  summarise(count = n())
+
+```
+
+<br></br>
+
+Here the frequency of Education responses are plotted to better visualize how respondents answered.
+
+<br></br>
+
+```{r,fig.align='center'}
+# Plot Education response frequency
+ggplot(q2_base, aes(x = educa)) + 
+  geom_bar() + 
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 15)) + 
+  xlab("Education Level") +
+  ylab("Number of Respondents") +
+  labs(title = "Frequency of Education Levels")
+```
+
+<br></br>
+
+Likewise, the frequency of Excercise respones are plotted.
+
+<br></br>
+
+```{r,fig.align='center'}
+# Plot Exercise response frequency
+ggplot(q2_base, aes(x = exerany2)) + 
+  geom_bar() + 
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 15)) + 
+  xlab("Exercised in the last month?") +
+  ylab("Number of Respondents") +
+  labs(title = "Frequency of Respondents that Exercised")
+```
+
+<br></br>
+
+There is a larger proportion of respondents with higher education levels, so a second data frame is created holding the proportions of respondents that exercised, by their education level. This is done to normalize the data so that each group is viewed independently of the others. Summary statistics for the exercised proportions are displayed, and the proportions are then plotted by education in order to discover any relationships between the variables.
+
+<br></br>
+
+```{r}
+# Create summary data frame
+q2_edu_summ <- q2_base %>% 
+  group_by(educa) %>% 
+  summarise(exercised = sum(exerany2 == "Yes")/n())
+
+# Display proportions
+q2_edu_summ
+```
+<br></br>
+
+```{r}
+# summary stats
+summary(q2_edu_summ$exercised)
+
+# standard deviation
+paste("standard deviation:", sd(q2_edu_summ$exercised))
+```
+
+<br></br>
+
+```{r, fig.width = 8, fig.height = 6, fig.align='center'}
+# Plot proportions
+ggplot(q2_edu_summ, aes(x = educa, y = exercised)) +
+  xlab("Level of Education") +
+  ylab("% Exercised") + 
+  geom_bar(stat = "identity", aes(fill = educa)) + 
+  guides(fill = FALSE) + 
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 15))+
+	scale_y_continuous(labels = percent_format()) +
+  labs(title = "Proportion of Respondents that Exercised by Education")
+```
+
+<br></br>
+
+From the summary statistics, the exercise proportions are centered somewhere around 0.6074 and 0.6346, however the plot indicates that respondents with higher levels of education were more likely to have exercised in the past month.
+
+<br></br>
+
+**Conclusion**
+
+There seems to be a positive correlation between level of education for respondents, and if they excercised within the past month. This could be used as justification to perform a deeper analysis of education and exercise, in order to determine if there is causation, or if there is some other confounding variable, causing the relationship.
+
+----
+
+####**Research quesion 3:**
+> Does employent status relate to the frequency of respondent's doctor's visits?
+
+<br></br>
+
+    Variable Name Description
+--  ------------- -------------
+1   CHECKUP1      How long since last checkup
+2   EMPLOY1       Employment status
+
+<br></br>
+
+Again, after selecting the relevant variables from the original data set, it can be shown that discrepancies between the data and the BRFSS codebook, are missing categories that have been rolled into NA. Additionally the frequency of responses for each variable are plotted.
+
+
+```{r}
+# Create relevant data frame
+q3_base <- brfss2013 %>% 
+  select(checkup1, employ1) %>% 
+  filter(!is.na(checkup1) & !is.na(employ1))
+
+# Show structure
+str(q3_base)
+```
+
+<br></br>
+
+
+**Last Checkup**
+  
+```{r, fig.width = 8, fig.height = 6, fig.align='center'} 
+# Plot 
+ggplot(q3_base, aes(x = checkup1)) + 
+  geom_bar() + 
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 15)) + 
+  xlab("Last Checkup") +
+  ylab("Number of Respondents") +
+  labs(title = "Frequency of Last Checkup Responses")
+
+# Display Variable counts for the last checkup
+brfss2013 %>% 
+  group_by(checkup1) %>% 
+  summarise(count = n())
+```
+<br></br>
+
+
+**Employment Status**
+```{r, fig.width = 8, fig.height = 6, fig.align='center'}
+ggplot(q3_base, aes(x = employ1)) + 
+  geom_bar() + 
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 15)) + 
+  xlab("Employment Status") +
+  ylab("Number of Respondents") +
+  labs(title = "Frequency of Employment Status Responses")
+
+# Display Variable counts for the Employment Status
+brfss2013 %>% 
+  group_by(employ1) %>% 
+  summarise(count = n())
+```
+
+<br></br>
+
+From the charts it is clear that the most frequent response for last checkup was "Within past year", and the most common employment statuses were "Employed for wages" and "Retired." This last point makes intuitive sense because, as seen in question 1, respondents were more likely to be in the older age ranges. To continue with the analysis, the distributions of responses for last checkup with respect to employment will be generated. This is done by grouping by employment status and calculating the proportions of each response.
+
+<br></br>
+
+```{r}
+# Create data frame of last doctor visit by proportion of Last checkup
+q3_totals <- q3_base %>% 
+	group_by(employ1) %>%  
+	summarise("Within past year" = sum(checkup1 == "Within past year")/n(), 
+		"Within past 2 years" = sum(checkup1 == "Within past 2 years")/n(), 
+		"Within past 5 years" = sum(checkup1 == "Within past 5 years")/n(), 
+		"5 or more years ago" = sum(checkup1 == "5 or more years ago")/n(), 
+		"Never" = sum(checkup1 == "Never")/n())
+
+q3_totals		
+```
+
+<br></br>
+
+Since the survey answers are all mutually exclusive, and the values are all less than one, the only requirement left to show that each of these groupings makes up a probability distribution is that they each add to one.
+
+<br></br>
+
+```{r}
+# Demonstrate each row is a distribution of the last doctor's visit for each employment status
+for(e in q3_totals$employ1){ 
+	print(paste(e, "column total: ", sum(t(q3_totals[q3_totals$employ1 == e,names(q3_totals)!="employ1"])))) 
+}
+```
+
+<br></br>
+
+In order to better manipulate the data, it must be restructured. The resulting structure is then displayed
+
+<br></br>
+
+```{r}
+# Restructure q3_totals 
+q3_totals_m <- melt(q3_totals, 
+                    id.vars = "employ1", 
+                    measure.vars = colnames(q3_totals[, names(q3_totals) != "employ1"]))
+
+str(q3_totals_m)
+```
+
+<br></br>
+
+Each of the resulting distributions is displayed here.
+
+<br></br>
+
+```{r, fig.width = 8, fig.height = 6, fig.align='center'}
+# PLOT q3_totals_m: Distribution of responses for Last Checkup, by Employment Level
+ggplot(q3_totals_m, aes(x = variable, y = value, fill = variable)) + 
+	geom_bar(stat = "identity") + 
+	facet_wrap(~employ1, ncol = 2) + 
+	scale_y_continuous(labels = percent_format()) +
+	theme(axis.text.x = element_blank(), 
+		  axis.ticks.x = element_blank(),
+		  axis.title.x = element_blank()) +
+	labs(fill = "Last Checkup", title = "Distributions of Responses for Last Checkup by Employment status")+
+	ylab("% of Responses")
+```
+
+<br></br>
+
+Each of these plots seems to follow the distribution of the total survey sample, however beacause responses for the last checkup being within the past year are so common, it is difficutl to tell the behavior of the other responses. The previous plot is shown here minus responses for "Within past year," along with the frequency of each response for last checkup, for comparison. Note that while the plot for the whole sample is using raw counts instead of proportions, this should not change the shape of the plot.
+
+<br></br>
+
+```{r, fig.width = 8, fig.height = 6, fig.align='center'}
+# plot q3_totals_m without "Within past year"
+ggplot(subset(q3_totals_m, variable != "Within past year"), aes(x = variable, y = value, fill = variable)) + 
+	geom_bar(position = "dodge", stat = "identity") + 
+	facet_wrap(~employ1, ncol = 2) + 
+	scale_y_continuous(labels = percent_format()) +
+	theme(axis.text.x = element_blank(), 
+		  axis.ticks.x = element_blank(),
+		  axis.title.x = element_blank()) +
+	labs(fill = "Last Checkup", title = "Proportion of responses excluding \"Within past year\" by Employment status")+
+	ylab("% of Responses")
+		
+# plot frequency of last checkup without "Within past year" 
+ggplot(subset(q3_base, checkup1 != "Within past year"), aes(x = checkup1)) + 
+  geom_bar() + 
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 15)) + 
+  xlab("Last Checkup") +
+  ylab("Number of Respondents") +
+  labs(title = "Frequency of Last Checkup Responses excluding \"Within past year\"")
+```
+
+<br></br>
+
+These plots seem to follow the same general shape of entire sample, however there appears to be a fair amount variation between each employment status. For instance, it appears to be much more common for those who are out of work for 1 year or more, to have had their last checkup greater than in the past year.
+
+<br></br>
+
+**Conclusion**
+
+The data indicates that employment status may be related to the response for last checkup because the proportions vary in regards to each status. 
